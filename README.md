@@ -48,7 +48,7 @@ Speed: P8 GPIO
 
 Direction: P1 (ADC)
 Angle = Resistance (see datasheet)
-Has 4.7k pullup (to 3.3v) and 1k in series
+Has 4.7k pullup (to 3.3v) and 2k in series (1k to pin, 1k to ground)
 
 
 Rain
