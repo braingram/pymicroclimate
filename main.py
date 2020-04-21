@@ -1,5 +1,3 @@
-#6K
-
 import struct
 
 import microbit
@@ -108,58 +106,69 @@ class Rain(WindSpeed):
 class VEML6030(TimedSensor):
     def __init__(self, interval):
         super().__init__(interval)
-        # reg, data_lsb, data_msb
-
-        # 50 ms integration time, 1/8 gain, (~60k lux max) 0.9216 lux/unit
-        #microbit.i2c.write(0x48, b'')
-        # for lux > 1000 need correction factor (chart looks more like 10000)
-        # y = 6.0135E-13x4 - 9.3924E-09x3 + 8.1488E-05x2 + 1.0023E+00x
-
-        # PSM = 3 (slowest integration time, lowest power consumption)
-        # PSM_EN = 1 (enable power savings mode)
-        # reg: 0x03 0b111 0b0
         microbit.i2c.write(0x48, b'\x03\x07\x00')
-
-        # ALS_SD = 0 (power on) (then wait 2.5 ms)
-        # ALS_IT = 8 (set integration time)
-        # ALS_PERSIST = 
-        # ALS_GAIN = 2 (set gain (do this after power on?))
-        # reg: 0x00, 0b00000001, 0b00010010
         microbit.i2c.write(0x48, b'\x00\x00\x18')
-
-        # for reading
-        # ALS_SD = 0 (trigger sample)
-        # how to know when done? (ALS_SD == 1)
-        #self.reading = False
-
-    #def update(self, t):
-    #    super().update(t)
-    #    if self.reading:  # check if sampling is done
-    #        if i2c_read(0x48, b'\x00', 2)[0] & 0b1:  # sample ready
-    #            self.report(t)
 
     def report(self, t):
         v = struct.unpack('<H', i2c_read(0x48, b'\x04', 2))[0]
         # TODO compensate for non-linearity
         print("l,%i,%0.4f" % (t, v * 0.9216))
-        #if self.reading:
-        #    v = struct.unpack('<H', i2c_read(0x48, b'\x04', 2))[0]
-        #    # TODO compensate for non-linearity
-        #    print("l,%i,%0.4f" % (t, v * 0.9216))
-        #    self.reading = False
-        #else:
-        #    # request reading
-        #    #microbit.i2c.write(0x48, b'\x00\x01\x18')
-        #    microbit.i2c.write(0x48, b'\x00\x00\x18')
-        #    self.reading = True
+
+
+class BME280(TimedSensor):
+    def __init__(self, interval):
+        super().__init__(interval)
+
+        # no filter, as default
+
+        # no humidity oversampling
+        microbit.i2c.write(0x76, b'\xF2\x00')  # no humidity oversampling
+
+        # no temp/pres oversampling, forced mode
+        microbit.i2c.write(0x76, b'\xF4\x01')
+
+        # modes
+        # 0: waiting for trigger
+        # 1: triggered
+        self.reading = False
+
+    def update(self, t):
+        super().update(t)
+        if self.reading:  # check if sampling is done
+            status = i2c_read(0x76, 0xF3)[0]
+            if (status ^ 0b1000) & 0b1000:
+                # sample is ready, report
+                self.report(t)
+
+    def parse_temperature(self, bs):
+        return ((bs[3] << 12) | (bs[4] << 4) | (bs[5] >> 4))
+
+    def parse_pressure(self, bs):
+        return ((bs[0] << 12) | (bs[1] << 4) | (bs[2] >> 4))
+
+    def parse_humidity(self, bs):
+        return ((bs[6] << 8) | bs[7])
+
+    def report(self, t):
+        if self.reading:
+            # read bytes
+            bs = i2c_read(0x76, 0xF7, 8)
+
+            # convert
+            print("wbt,%i,%0.2f" % (t, self.parse_temperature(bs)))
+            print("wbp,%i,%0.2f" % (t, self.parse_pressure(bs)))
+            print("wbh,%i,%0.2f" % (t, self.parse_humidity(bs)))
+
+            self.reading = False
+        else:
+            # request reading
+            # no temp/pres oversampling, forced mode
+            microbit.i2c.write(0x76, b'\xF4\x01')
+            self.reading = True
+
 
 
 interval = 1000
-#i2c_sensor_addrs = {
-#    #0x48: VEML6030,
-#    #0x76: MS8607,
-#    #0x77: BME280,
-#}
 
 microbit.i2c.init()
 sensors = (
@@ -169,12 +178,8 @@ sensors = (
     WindDir(interval),
     Rain(interval, microbit.pin2),  # 192 bytes
     VEML6030(interval),
+    BME280(interval),
 )
-
-# scan i2c bus, add only available sensors
-#for addr in microbit.i2c.scan():
-#    if addr in i2c_sensor_addrs:
-#        sensors.append(sensor_addrs[addr](interval))
 
 while True:
     t_ms = microbit.running_time()
