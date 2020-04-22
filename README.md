@@ -1,3 +1,9 @@
+An attempt was made to make this work with micropython.
+However, after many MemoryErrors it appears the microbit
+doesn't have enough resources to handle the required sensors.
+Development was switched to an Arduino sketch:
+[weatherstation](weatherstation)
+
 Using micropython
 Transferred using [MicroFS](https://microfs.readthedocs.io/en/latest/)
 
@@ -10,7 +16,7 @@ Microbit Sensors:
 - Radio: (for talking to other micirobits)
 
 Weatherbit Sensors:
-- Temp/Humidity/Pressure, BME280: i2c, 0x77
+- Temp/Humidity/Pressure, BME280: i2c, 0x76 [0x77 if SDO high, but it's not]
 - Wind (WDIR:P1, WSPEED:P8)
 - Rain (P2)
 - Serial logger (TX:P15, RX:P14)
