@@ -67,9 +67,9 @@ class PinCounter {
     PinCounter(int pin_number);
     void update();
     int get_and_reset_count();
+    volatile int count;
   private:
     int pin;
-    int count;
     int state;
 };
 
@@ -101,6 +101,16 @@ int PinCounter::get_and_reset_count() {
 
 PinCounter wspd(WSPDPIN);
 PinCounter rain(RAINPIN);
+
+
+void wspd_isr() {
+  wspd.count += 1;
+};
+
+void rain_isr() {
+  rain.count += 1;
+};
+
 #endif
 
 #ifdef DS18B20
@@ -162,6 +172,8 @@ void setup (){
 #endif
 #ifdef WEATHER
   Serial.println("#Adding wind and rain sensors...ok!");
+  attachInterrupt(digitalPinToInterrupt(RAINPIN), rain_isr, FALLING);
+  attachInterrupt(digitalPinToInterrupt(WSPDPIN), wspd_isr, FALLING);
 #endif
 #ifdef DS18B20
   Serial.print("#Adding external temperature sensor...");
@@ -357,11 +369,6 @@ void loop() {
 #endif
     header_timer = 0;
   };
-#ifdef WEATHER
-  // TODO add this to an interrupt?
-  rain.update();
-  wspd.update();
-#endif
   if (poll_timer >= POLL_INTERVAL) {
     DBG("Polling")
     poll_timer = 0;
