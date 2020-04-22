@@ -1,8 +1,8 @@
 #include <elapsedMillis.h>
 #include <Wire.h>
 
-// TODO onewire temperature sensor
 // TODO serial logger
+// TODO soil moistrue meter?
 
 // interal temperature/humidity/pressure sensor
 #define BME280
@@ -13,11 +13,14 @@
 // weather (rain and wind) sensors
 #define WEATHER
 
+// one-wire temperature sensor
+#define DS18B20
+
 #ifdef BME280
 // requires installing BMx280MI library
 #include <BMx280I2C.h>
 BMx280I2C bme280(0x76);
-bool bme280_read = false;
+bool bme280_waiting = false;
 #endif
 
 #ifdef VEML6030
@@ -87,6 +90,24 @@ PinCounter wspd(WSPDPIN);
 PinCounter rain(RAINPIN);
 #endif
 
+#ifdef DS18B20
+// requires installing OneWire and DallasTemperature
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define DS18B20PIN 12
+// conversion time is set by resolution, make sure they are correct
+#define DS18B20RES 12
+#define DS18B20CONVT 750
+OneWire oneWire(DS18B20PIN);
+DallasTemperature dts(&oneWire);
+elapsedMillis dts_timer;
+bool dts_waiting = false;
+#endif
+
+
+// -------------------------------------------------------
+
+
 elapsedMillis report_timer;
 //#define REPORT_INTERVAL 1000
 #define REPORT_INTERVAL 60000
@@ -117,6 +138,13 @@ void setup (){
 #ifdef WEATHER
   Serial.println("Adding wind and rain sensors...");
 #endif
+#ifdef DS18B20
+  dts.begin();
+  DeviceAddress da;
+  dts.getAddress(da, 0);
+  dts.setResolution(da, DS18B20RES);
+  dts.setWaitForConversion(false);
+#endif
 }
 
 void loop() {
@@ -128,7 +156,7 @@ void loop() {
     Serial.println(millis());
 #ifdef BME280
     bme280.measure();  // if false, measure couldn't start
-    bme280_read = false;
+    bme280_waiting = true;
 #endif
 #ifdef VEML6030
     Serial.print("light,");
@@ -142,9 +170,14 @@ void loop() {
     Serial.print("rain,");
     Serial.println(rain.get_and_reset_count() * 0.2794, 4);
 #endif
+#ifdef DS18B20
+    dts.requestTemperatures();
+    dts_waiting = true;
+    dts_timer = 0;
+#endif
   };
 #ifdef BME280
-  if (!bme280_read) {
+  if (bme280_waiting) {
     if (bme280.hasValue()) {   // if true, measurement is ready
       Serial.print("wb_temp,");
       Serial.println(bme280.getTemperature(), 4);
@@ -152,9 +185,17 @@ void loop() {
       Serial.println(bme280.getPressure(), 4);
       Serial.print("wb_humidity,");
       Serial.println(bme280.getHumidity(), 2);
-      bme280_read = true;
+      bme280_waiting = false;
     };
   };
 #endif
-
+#ifdef DS18B20
+  if (dts_waiting) {
+    if (dts_timer > DS18B20CONVT) {
+      dts_waiting = false;
+      Serial.print("ext_temp,");
+      Serial.println(dts.getTempCByIndex(0));
+    };
+  };
+#endif
 }
