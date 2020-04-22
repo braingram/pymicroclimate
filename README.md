@@ -4,6 +4,18 @@ doesn't have enough resources to handle the required sensors.
 Development was switched to an Arduino sketch:
 [weatherstation](weatherstation)
 
+To compile and load the sketch you will need to:
+
+- [install microbit support for Arduino](https://learn.adafruit.com/use-micro-bit-with-arduino/install-board-and-blink)
+- install a number of libraries (depending on what sensors are used)
+  - BMx280MI
+  - Sparkfun Ambient Light Sensor Arduino Library
+  - OneWire
+  - DallasTemperature
+
+
+Old information
+------
 Using micropython
 Transferred using [MicroFS](https://microfs.readthedocs.io/en/latest/)
 
