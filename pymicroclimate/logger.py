@@ -124,3 +124,15 @@ class Logger:
 
     def read_serial_line(self):
         self.parse_line(self.conn.readline().decode('ascii').strip())
+
+
+def run_cmdline():
+    cfg = config.from_cmdline()
+    logger = Logger(cfg)
+    print("Logging %s to %s, Ctrl-C to quit" % (cfg['port'], cfg['data_dir']))
+    while True:
+        try:
+            logger.read_serial_line()
+        except KeyboardInterrupt as e:
+            print("Quitting...")
+    del logger
