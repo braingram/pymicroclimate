@@ -18,7 +18,7 @@
 #define DS18B20
 
 // use bluetooth serial
-#define BLE
+//#define BLE
 
 
 /* ------------------------------- */
