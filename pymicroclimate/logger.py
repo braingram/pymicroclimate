@@ -123,7 +123,10 @@ class Logger:
         self.log_line(line, ts)
 
     def read_serial_line(self):
-        self.parse_line(self.conn.readline().decode('ascii').strip())
+        try:
+            self.parse_line(self.conn.readline().decode('ascii').strip())
+        except ReadingError as e:
+            print("Invalid line: %s" % e)
 
 
 def run_cmdline():
@@ -135,4 +138,5 @@ def run_cmdline():
             logger.read_serial_line()
         except KeyboardInterrupt as e:
             print("Quitting...")
+            break
     del logger

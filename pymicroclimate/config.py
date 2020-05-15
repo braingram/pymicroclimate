@@ -56,20 +56,20 @@ def from_cmdline():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-c', '--config', default=None, type=str,
-        description="Read config from file")
-    parser.add_agument(
+        help="Read config from file")
+    parser.add_argument(
         '-d', '--data_dir', default=None, type=str,
-        description="Save data to data_dir")
+        help="Save data to data_dir")
     parser.add_argument(
         '-o', '--one_file', action='store_true',
-        description="Enabling this saves all data to one file")
+        help="Enabling this saves all data to one file")
     parser.add_argument(
         '-p', '--port', default=None, type=str,
-        description="Serial port of weatherbit, if not provided first one will be used")
+        help="Serial port of weatherbit, if not provided first one will be used")
     args = parser.parse_args()
 
     cfg = load_config(fn=args.config)
-    if args.data_dir is not none:
+    if args.data_dir is not None:
         cfg['data_dir'] = args.data_dir
     if args.one_file:
         cfg['split_days'] = False
