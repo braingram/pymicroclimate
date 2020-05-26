@@ -3,6 +3,7 @@ import logging
 import os
 import sqlite3
 
+import numpy
 import serial
 
 from . import config
@@ -20,6 +21,7 @@ line_tokens = [
     ('ExtTemp', float),
     ('SampleIndex', int)
 ]
+row_dtype = [('Timestamp', int), ] + line_tokens
 
 
 def create_table(db):
@@ -127,6 +129,16 @@ class Logger:
             self.parse_line(self.conn.readline().decode('ascii').strip())
         except ReadingError as e:
             print("Invalid line: %s" % e)
+
+
+def load_file(fn, as_array=True):
+    with sqlite3.connect(fn) as db:
+        cur = db.cursor()
+        cur.execute('select * from weather')
+        vs = cur.fetchall()
+        if not as_array:
+            return vs
+        return numpy.array(vs, dtype=row_dtype)
 
 
 def run_cmdline():
